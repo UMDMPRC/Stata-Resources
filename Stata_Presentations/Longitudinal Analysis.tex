@@ -1,0 +1,125 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage{verbatim}
+\usepackage{tikz}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\setbeamertemplate{footline}[frame number]
+\title{Longitudinal Data Analysis in Stata}
+\author{\texorpdfstring{Heide Jackson \newline\url{heidej@umd.edu}}{Author}}
+\institute{University of Maryland Population Research Center}
+
+\date{August 2019}
+
+\begin{document}
+\maketitle
+\begin{frame}{High Level Things to Know}
+\begin{itemize}
+\item Focus will be on structuring data, so that it is suitable for a range of longitudinal analyses. 
+\item Start simple and wide.
+\item Track time varying and non-time varying measures.
+\item Make sure time varying variables share a common suffix before moving to long format.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]{Wide and Long Format}
+
+\begin{itemize}
+\item Two ways of specifying the data structure.
+\item Wide format has one observation per entity. 
+\item Long format can have multiple observations per entity. 
+\item Data doesn't have to be longitudinal and it can be multi-leveled.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]{Wide Long Format Examples}
+\textbf{Household Person Data}
+\begin{itemize}
+    \item Wide format: one row per household, separate variables for each person in household.
+    \item Long format: potentially multiple rows per household.  Separate rows for each person in the household.
+\end{itemize}
+\textbf {Person Time Data}
+\begin{itemize}
+    \item Wide format: one row per person, separate variables for each year observed
+    \item Long format: multiple rows per person.  Separate rows for each time period observed.
+\end{itemize}
+\end{frame}
+\begin{frame}[fragile]{Start Wide}
+\begin{itemize}
+    \item I recommend starting analyses with the data in wide format.  
+    \item Why?  Get to know the data at the unit of analysis.  
+    \item Make sure time varying variables have a common suffix before going long.
+    \item Generate any time-invariant measures before going long.
+    \item How to check if data is wide:
+    \begin{verbatim}
+        sort id
+        by id: gen obs=_N
+        tab obs if obs>1
+        /*if any observations appear, 
+        data are not wide*/
+    \end{verbatim}
+\end{itemize}
+\end{frame}
+\begin{frame}[fragile]{Preparing Data for Long Format}
+\begin{itemize}
+    \item Restrict the data set to variables to be used in the analysis.
+    \item Make sure time varying variables have a common suffix usually a number (i.e. income1 income2 income 3 if there are three time points).
+    \item Make sure there is a unique id variable.  
+    \item Consider making a list of time varying and non-time varying measures like this:
+    \begin{verbatim}
+local timevar timevar1 timevar2...
+local notimevar demo birthyear 
+    \end{verbatim}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{The Syntax of Reshape}
+
+Four key parts:
+\begin{verbatim}
+reshape 1. long 2.`timevar', 3. i(id) 4. j(time)
+\end{verbatim}
+\begin{small}
+\begin{enumerate}
+    \item Reshape long takes data from wide to long format.  Reshape wide does long to wide format.
+    \item All time varying variables should be specified.  Non-time varying variables will be unchanged but if going from wide to long, they will be copied for all new rows created per entity.
+    \item i indicates entity id variable, should be unique if data are wide.
+    \item j will be created variable indicating number of observations per entity if going to long format.  If going to wide format, j should reference a variable in the data set that will be converted to a suffix for time varying variables.
+\end{enumerate}
+\end{small}
+\end{frame}
+
+\begin{frame}[fragile]{Working Example}
+
+ \begin{verbatim}
+ webuse nlswork
+ 
+ keep age msp nev_mar grade birth_yr race
+ /*define variable types*/
+ local timevarying age msp nev_mar grade 
+ local nottimevarying birth_yr race
+
+ reshape wide `timevarying', i(idcode) j(year)
+ 
+ reshape long `timevarying', i(idcode) j(year)
+ \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Data are Long, Now what?}
+\begin{itemize}
+\item Check that the structure of the data is what you expect given what was observed when data were wide.
+\item Key to know, is the data balanced (all entities observed same number of times) or unbalanced.  One way to do this is to count the number of times each entity is observed.
+\begin{verbatim}
+sort id
+by id: gen obs=_N
+tab _N
+/*If more than one value, data are unbalanced*/
+\end{verbatim}
+\item Variety of statistical models (fixed effect, random effect, survival analysis, HLM) can be run with data in long format.
+\end{itemize}
+\end{frame}
+
+\end{document}
